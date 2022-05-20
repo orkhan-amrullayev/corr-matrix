@@ -11,14 +11,14 @@ st.write("""
 This app provides correlation matrix as dataframe, its heatmap and the most important correlations!
 """)
 st.sidebar.header('1. Upload File')
-st.error('Upload a file from left handside')
+
 
 
 uploaded_file = st.sidebar.file_uploader(label='Upload your CSV or Excel file.',
                          type=['csv', 'xlsx'])
 
-global df
-if uploaded_file is not None:
+
+if uploaded_file:
     try:
         df = pd.read_csv(uploaded_file)
         print('CSV file is uploaded')
@@ -56,105 +56,115 @@ def load_data():
       if column in df.columns[df.dtypes == "object"]:
         string_columns.append(column)
 
-    for i in string_columns:
-      df[i] = df[i].str.lower()
+#     for i in string_columns:
+#       df[i] = df[i].str.lower()
+
     df_clean = df.copy()
 
     return df, df_raw, all_cols, df_clean
 
-df, df_raw, all_cols, df_clean = load_data()
+if uploaded_file:
+  df, df_raw, all_cols, df_clean = load_data()
 
-######################################################
-st.sidebar.header('2. Display datasets')
+  ######################################################
+  st.sidebar.header('2. Display datasets')
 
-check_box = st.sidebar.checkbox(label="Display loaded dataset")
-#
-if check_box:
-    st.write('### Loaded dataset:')
-    st.write(df_raw)
+  check_box = st.sidebar.checkbox(label="Display loaded dataset")
+  #
+  if check_box:
+      st.write('### Loaded dataset:')
+      st.write(df_raw)
 
-check_box2 = st.sidebar.checkbox(label="Display clean dataset")
-#
-if check_box2:
-    st.write("""
-    ### Dataset after cleaning
-    Dataset cleaning includes:
-    - detecting categorical columns lowercasing all the values of the columns as the correlation matrix is case sensitive;
-    - detecting numerical columns and filling their missing values by their averages.
-    """)
-    st.write(df_clean)
+  check_box2 = st.sidebar.checkbox(label="Display clean dataset")
+  #
+  if check_box2:
+      st.write("""
+      ### Dataset after cleaning
+      Dataset cleaning includes:
+      - detecting categorical columns lowercasing all the values of the columns as the correlation matrix is case sensitive;
+      - detecting numerical columns and filling their missing values by their averages.
+      """)
+      st.write(df_clean)
 
-#give sidebar a title
-st.sidebar.header("3. Adjustment")
+  #give sidebar a title
+  st.sidebar.header("3. Adjustment")
 
-st.error('Select attributes to create correlation matrix')
-try:
-    feature_selection = st.sidebar.multiselect(label="Attributes to include to correlation matrix",
-                                           options=all_cols)
-    selected_cols = []
-    for i in df.columns:
-        if i in feature_selection:
-            selected_cols.append(i)
+  st.error('Select attributes to create correlation matrix')
+  try:
+      feature_selection = st.sidebar.multiselect(label="Attributes to include to correlation matrix",
+                                             options=all_cols)
+      selected_cols = []
+      for i in df.columns:
+          if i in feature_selection:
+              selected_cols.append(i)
 
-except Exception:
-    st.error('Please select attributes to see correlation')
+  except Exception:
+      st.error('Please select attributes to see correlation')
 
-selected_df = df.loc[:, selected_cols]
-selected_df_with_dummmies = pd.get_dummies(selected_df)
-corr_matrix = selected_df_with_dummmies.corr()
+  selected_df = df.loc[:, selected_cols]
+  selected_df_with_dummmies = pd.get_dummies(selected_df)
+  corr_matrix = selected_df_with_dummmies.corr()
 
-st.write("""
-## Correlation Matrix
+  st.write("""
+  ## Correlation Matrix
 
-The lighter the color is, the stronger the correlation is. Darker colors mean little to zero correlation!
-Blue colors depict negative, orange colors depict positive correlation.
-\n Include more attribute to the correlation matrix from the sidebar on the left handside.
-""")
+  The lighter the color is, the stronger the correlation is. Darker colors mean little to zero correlation!
+  Blue colors depict negative, orange colors depict positive correlation.
+  \n Include more attribute to the correlation matrix from the sidebar on the left handside.
+  """)
 
-fig, ax = plt.subplots(figsize=(25, 20))
+  fig, ax = plt.subplots(figsize=(25, 20))
 
-# create seaborn heatmap
-g = sns.heatmap(corr_matrix, annot=True, linewidths=.5, center=0)
+  # create seaborn heatmap
+  g = sns.heatmap(corr_matrix, annot=True, linewidths=.5, center=0)
 
-g.set_yticklabels(g.get_yticklabels(), rotation = 0, fontsize = 25)
-g.set_xticklabels(g.get_xticklabels(), rotation = 90, fontsize = 25)
-
-
-try:
-    g;
-    st.write(fig)
-
-except Exception as e:
-    print(e)
-    st.write('Please select attributes to see correlation.')
+  g.set_yticklabels(g.get_yticklabels(), rotation = 0, fontsize = 25)
+  g.set_xticklabels(g.get_xticklabels(), rotation = 90, fontsize = 25)
 
 
-###############################################################################
-st.error('Show highly correlated sentences by ticking from the left handside')
+  try:
+      g;
+      st.write(fig)
 
-st.sidebar.header("4. Top correlations with sentences")
-check_box3 = st.sidebar.checkbox(label="Show highly correlated attributes")
-#
-if check_box3:
-    treshold = st.sidebar.slider('Change correlation range to show highly correlated attributes.', 0.0, 1.0, 0.3)
-    # treshold = treshold/10
-    list_of_corr = []
+  except Exception as e:
+      print(e)
+      st.write('Please select attributes to see correlation.')
 
-    for colname in corr_matrix.columns:
-        for num, value in enumerate(corr_matrix[colname]):
-            if abs(value) > treshold and value < 1:
-                if value > 0:
-                    list_of_corr.append(str(abs(
-                        round(value, 2))) + ' of positive (+) correlation detected between ' + colname + ' and ' +
-                                        corr_matrix.columns[num])
-                elif value < 0:
-                    list_of_corr.append(str(abs(
-                        round(value, 2))) + ' of negative (-) correlation detected between ' + colname + ' and ' +
-                                        corr_matrix.columns[num])
 
-    top_corr_sentence = sorted(list_of_corr, reverse=True)
-    top_corr_sentence = pd.DataFrame(top_corr_sentence)
-    st.write('### Top correlated attributes:')
-    st.table(top_corr_sentence)
-  #  st.plotly_chart(data, data=top_corr_sentence)
-  #  st.plotly_chart(data=top_corr_sentence, width=2000, height=2000)
+  ###############################################################################
+  st.error('Show highly correlated sentences by ticking from the left handside')
+
+  st.sidebar.header("4. Top correlations with sentences")
+  check_box3 = st.sidebar.checkbox(label="Show highly correlated attributes")
+  #
+  if check_box3:
+      treshold = st.sidebar.slider('Change correlation range to show highly correlated attributes.', 0.0, 1.0, 0.3)
+      # treshold = treshold/10
+      list_of_corr = []
+
+      for colname in corr_matrix.columns:
+          for num, value in enumerate(corr_matrix[colname]):
+              if abs(value) > treshold and value < 1:
+                  if value > 0:
+                      list_of_corr.append(str(abs(
+                          round(value, 2))) + ' of positive (+) correlation detected between ' + colname + ' and ' +
+                                          corr_matrix.columns[num])
+                  elif value < 0:
+                      list_of_corr.append(str(abs(
+                          round(value, 2))) + ' of negative (-) correlation detected between ' + colname + ' and ' +
+                                          corr_matrix.columns[num])
+
+      top_corr_sentence = sorted(list_of_corr, reverse=True)
+      top_corr_sentence = pd.DataFrame(top_corr_sentence)
+      st.write('### Top correlated attributes:')
+      st.table(top_corr_sentence)
+    #  st.plotly_chart(data, data=top_corr_sentence)
+    #  st.plotly_chart(data=top_corr_sentence, width=2000, height=2000)
+   
+  
+#         else:
+#             st.info('Show highly correlated sentences by ticking from the left handside')
+#     else:
+#         st.info('Select attributes to create correlation matrix')
+else:
+    st.info('Upload a file from left handside')
