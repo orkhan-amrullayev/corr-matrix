@@ -3,7 +3,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import streamlit as st
-import plotly.figure_factory as ff
+# import plotly.figure_factory as ff
 
 st.write("""
 # Correlation Matrix Builder
